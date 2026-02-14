@@ -118,7 +118,7 @@ def get_social_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=1)
     btn_wa = types.InlineKeyboardButton("💬 Chat on WhatsApp", url="https://wa.me/918797114376")
     btn_ig = types.InlineKeyboardButton("📸 Follow on Instagram", url="https://www.instagram.com/amresh_kumar.__?igsh=MW95aWs1cDZ1aXpjdg==")
-    btn_map = types.InlineKeyboardButton("📍 Our Restaurant Location", url="https://www.google.com/maps/place/Vinayaka+Missions+Kirupananda+Variyar+Medical+College+%26+Hospital/@11.5833319,78.0471145,8480m/data=!3m1!1e3!4m6!3m5!1s0x3babefd87754637d:0x567844ffa0271836!8m2!3d11.5855951!4d78.0638786!16s%2Fg%2F11qm0bk4sb?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D")
+    btn_map = types.InlineKeyboardButton("📍 Our Restaurant Location", url="https://www.google.com/maps/search/?api=1&query=Vinayaka+Missions+Kirupananda+Variyar+Medical+College")
     markup.add(btn_wa, btn_ig, btn_map)
     return markup
 
