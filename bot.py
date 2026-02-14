@@ -72,6 +72,18 @@ def log_to_google_sheet(order_id, date, order_obj):
     except Exception as e:
         print(f"Cloud Sync Error: {e}")
 
+def log_rating_to_google_sheet(order_id, rating):
+    """Logs customer rating to Google Sheets."""
+    try:
+        params = {
+            "order_id": order_id,
+            "rating": rating,
+            "type": "feedback"
+        }
+        requests.get(SHEET_URL, params=params, timeout=5)
+    except:
+        pass
+
 # ------------------------------------------------------------------------------
 # 🔹 AI ASSISTANT (GEMINI AI)
 # ------------------------------------------------------------------------------
@@ -116,6 +128,13 @@ def get_location_keyboard():
     btn_location = types.KeyboardButton('📍 Share My Current Location', request_location=True)
     btn_skip = types.KeyboardButton('Type Manually')
     markup.add(btn_location, btn_skip)
+    return markup
+
+def get_rating_keyboard(order_id):
+    """Returns a star-based rating keyboard."""
+    markup = types.InlineKeyboardMarkup(row_width=5)
+    btns = [types.InlineKeyboardButton(f"{i} ⭐", callback_data=f"rate_{order_id}_{i}") for i in range(1, 6)]
+    markup.add(*btns)
     return markup
 
 def get_category_keyboard():
@@ -205,6 +224,10 @@ def process_product_step(message):
         "We will contact you shortly."
     )
     bot.send_message(chat_id, invoice_msg, parse_mode="Markdown", reply_markup=get_main_keyboard(), disable_web_page_preview=True)
+    
+    # Send Rating Prompt
+    bot.send_message(chat_id, "⭐ *Quick Feedback:*\nHow was your experience? Please rate us:", 
+                     parse_mode="Markdown", reply_markup=get_rating_keyboard(order_id))
     del user_data[chat_id]
 
 # ------------------------------------------------------------------------------
@@ -237,6 +260,14 @@ def handle_category(call):
             bot.send_photo(call.message.chat.id, img_url, caption=detail, parse_mode="Markdown")
     else:
         bot.answer_callback_query(call.id, "No data available.")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('rate_'))
+def handle_rating(call):
+    _, order_id, score = call.data.split('_')
+    log_rating_to_google_sheet(order_id, score)
+    bot.answer_callback_query(call.id, f"Thank you for the {score} ⭐ rating!")
+    bot.edit_message_text(f"✅ *Rating Submitted:* {score} ⭐\nThank you for choosing us!", 
+                         call.message.chat.id, call.message.message_id, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: message.text == '📱 Social Media Hub')
 def social_hub(message):
