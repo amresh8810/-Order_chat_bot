@@ -8,9 +8,10 @@ from telebot import types
 # ==========================================
 # CONFIGURATION
 # ==========================================
-API_TOKEN = '8587931543:AAFJJ7OHr6yaPvJ3zgfB9fhsq9KeVrWScgQ'
-GOOGLE_API_KEY = 'AIzaSyDsjiyAM5B9lJtplEUpCkhElbvfeQtBOQA'
-SHEET_URL = 'https://script.google.com/macros/s/AKfycbwdRqnwnDwhSXnGOc7fXgrB96Iiq6JumRfrxwZ2GCuRoqWp6V7OHBe3zpm6iUBU9RZLHg/exec'
+# Get keys from environment variables (Secrets)
+API_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '8587931543:AAFJJ7OHr6yaPvJ3zgfB9fhsq9KeVrWScgQ')
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', 'AIzaSyDsjiyAM5B9lJtplEUpCkhElbvfeQtBOQA')
+SHEET_URL = os.environ.get('GOOGLE_SHEET_URL', 'https://script.google.com/macros/s/AKfycbwdRqnwnDwhSXnGOc7fXgrB96Iiq6JumRfrxwZ2GCuRoqWp6V7OHBe3zpm6iUBU9RZLHg/exec')
 
 bot = telebot.TeleBot(API_TOKEN)
 DATA_FILE = 'data.csv'
