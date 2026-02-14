@@ -1,42 +1,59 @@
-# 🍴 Telegram Restaurant & Order Bot
-
-A professional, AI-powered Telegram bot designed for restaurant owners to showcase their menu, take customer orders, and manage data seamlessly using Google Sheets.
-
-## 🚀 Features
-
--   **🍱 Smart Menu/Restaurant Search:** Customers can search for restaurants by name or ID.
--   **🛒 Interactive Ordering:** A smooth step-by-step flow to collect customer name, address, phone number, and items.
--   **📊 Google Sheets Integration:** Every confirmed order is automatically logged into a Google Sheet in real-time.
--   **🤖 Gemini AI Assistant:** Integrated with Google Gemini 1.5 Flash to answer customer queries politely in Hinglish.
--   **☁️ 24/7 Hosting:** Pre-configured to run on GitHub Actions for free, non-stop operation.
-
-## 🛠️ Tech Stack
-
--   **Language:** Python 3.x
--   **Telegram Library:** `pyTelegramBotAPI`
--   **AI Engine:** Google Gemini AI (v1beta)
--   **Database (Offline):** CSV (local storage)
--   **Database (Online):** Google Sheets (via Apps Script)
--   **Hosting:** GitHub Actions
-
-## ⚙️ Setup & Deployment
-
-To get this bot running 24/7 on GitHub:
-
-1.  **Fork/Clone** this repository.
-2.  Go to your Repository **Settings > Secrets and variables > Actions**.
-3.  Add the following **Repository Secrets**:
-    -   `TELEGRAM_BOT_TOKEN`: Your BotFather token.
-    -   `GOOGLE_API_KEY`: Your Google AI Studio API key.
-    -   `GOOGLE_SHEET_URL`: Your Google Apps Script Web App URL.
-4.  The bot will automatically start via GitHub Actions!
-
-## 📜 Usage
-
--   Write `/start` to begin.
--   Type `order` to start booking food.
--   Type `data` to see the full list of restaurants.
--   Ask any question to chat with the AI!
+<div align="center">
+  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png" width="100%">
+  
+  # 🍴 Telegram Restaurant & Order Bot
+  
+  ### 🔹 *A Professional, AI-Powered Ordering Solution* 🔹
+  
+  [![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+  [![Telegram](https://img.shields.io/badge/Telegram-Bot-blue?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/BotFather)
+  [![Status](https://img.shields.io/badge/Status-Online-brightgreen?style=for-the-badge)](https://github.com/amresh8810/-Order_chat_bot/actions)
+</div>
 
 ---
-Developed by **Amresh Kumar** 🚀
+
+### 🚀 Key Blue Features
+
+*   💎 **Premium AI Assistance**: Powered by Google Gemini 1.5 Flash for polite, intelligent responses.
+*   🛒 **Smart Ordering System**: Professional step-by-step data collection (Name, Phone, Items).
+*   📍 **GPS Location Support**: Capture real-time delivery locations via Google Maps.
+*   📊 **Cloud Database**: Every order is instantly logged to a private Google Sheet.
+*   📱 **Social Media Hub**: Integrated links for WhatsApp, Instagram, and more.
+
+---
+
+### 🛠️ Technology Stack
+
+- **Core**: Python 3.13
+- **Bot Engine**: pyTelegramBotAPI
+- **Cloud Hosting**: GitHub Actions (Free 24/7 Hosting)
+- **Data Sync**: Google Apps Script & Sheets
+
+---
+
+### ⚙️ How to Setup (Blue Edition)
+
+1.  **Fork** this repository.
+2.  Go to **Settings > Secrets > Actions**.
+3.  Add these **Blue Secrets**:
+    - `TELEGRAM_BOT_TOKEN`: 🔑
+    - `GOOGLE_API_KEY`: 🧠
+    - `GOOGLE_SHEET_URL`: 📑
+4.  Enable **Actions** and your bot is Live!
+
+---
+
+### 📜 Bot Commands
+
+| Command | Action |
+| :--- | :--- |
+| `🍴 View Menu` | Browse restaurants by category |
+| `🛒 Order Food` | Start the booking flow |
+| `📱 Social Hub` | Connect with the owner |
+| `❓ Help` | Chat with our AI |
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/aqua.png" width="100%">
+  <br>
+  Developed with ❤️ by <b>Amresh Kumar</b>
+</div>
