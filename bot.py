@@ -15,13 +15,14 @@ SHEET_URL = os.environ.get('GOOGLE_SHEET_URL', 'https://script.google.com/macros
 bot = telebot.TeleBot(API_TOKEN)
 DATA_FILE = 'data.csv'
 
-# Store temporary data
+# Store temporary order data
 user_data = {}
 
 class Order:
     def __init__(self):
         self.name = None
         self.address = None
+        self.location_link = None
         self.phone = None
         self.product = None
 
@@ -42,11 +43,13 @@ def load_data():
 # Function to log order to Google Sheets
 def log_to_google_sheet(order_id, date, order_obj):
     try:
+        # Use location link if available, otherwise text address
+        final_address = order_obj.location_link if order_obj.location_link else order_obj.address
         params = {
             "order_id": order_id,
             "date": date,
             "name": order_obj.name,
-            "address": order_obj.address,
+            "address": final_address,
             "phone": order_obj.phone,
             "product": order_obj.product
         }
@@ -74,6 +77,13 @@ def get_main_keyboard():
     markup.add('🍴 View Menu', '🛒 Order Food', '❓ Help / AI Chat', '📞 Contact Owner')
     return markup
 
+def get_location_keyboard():
+    markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
+    btn_location = types.KeyboardButton('📍 Share My Current Location', request_location=True)
+    btn_skip = types.KeyboardButton('Type Manually')
+    markup.add(btn_location, btn_skip)
+    return markup
+
 def get_category_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=2)
     categories = ['Indian', 'Italian', 'Chinese', 'Fast Food', 'Japanese']
@@ -82,7 +92,82 @@ def get_category_keyboard():
     return markup
 
 # ==========================================
-# HANDLERS
+# ORDER FLOW HANDLERS
+# ==========================================
+
+@bot.message_handler(func=lambda message: message.text == '🛒 Order Food' or message.text == '/order')
+def start_order(message):
+    chat_id = message.chat.id
+    user_data[chat_id] = Order()
+    msg = bot.send_message(chat_id, "🛒 *Food Order Booking Start!*\n\nअपना पूरा नाम लिखें:", parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_name_step)
+
+def process_name_step(message):
+    chat_id = message.chat.id
+    user_data[chat_id].name = message.text
+    msg = bot.send_message(chat_id, f"नमस्ते {message.text}! अपना डिलीवरी पता देने के लिए नीचे बटन दबाएं या टाइप करें:", 
+                          reply_markup=get_location_keyboard(), parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_address_logic)
+
+def process_address_logic(message):
+    chat_id = message.chat.id
+    
+    if message.location:
+        lat = message.location.latitude
+        lon = message.location.longitude
+        user_data[chat_id].location_link = f"https://www.google.com/maps?q={lat},{lon}"
+        user_data[chat_id].address = "Location Shared via GPS"
+        msg = bot.send_message(chat_id, "📍 लोकेशन मिल गई! अब अपना *Mobile Number* दें:", 
+                              reply_markup=types.ReplyKeyboardRemove(), parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_phone_step)
+    elif message.text == 'Type Manually':
+        msg = bot.send_message(chat_id, "ठीक है, अपना पूरा पता (Address) टाइप करें:", 
+                              reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(msg, process_manual_address_step)
+    else:
+        # User typed address directly
+        user_data[chat_id].address = message.text
+        msg = bot.send_message(chat_id, "अब अपना *Mobile Number* दें:", 
+                              reply_markup=types.ReplyKeyboardRemove(), parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_phone_step)
+
+def process_manual_address_step(message):
+    chat_id = message.chat.id
+    user_data[chat_id].address = message.text
+    msg = bot.send_message(chat_id, "ठीक है! अब अपना *Mobile Number* क्या है?")
+    bot.register_next_step_handler(msg, process_phone_step)
+
+def process_phone_step(message):
+    chat_id = message.chat.id
+    user_data[chat_id].phone = message.text
+    msg = bot.send_message(chat_id, "आप क्या खाना चाहते हैं? (Food/Restaurant Name):", reply_markup=get_main_keyboard())
+    bot.register_next_step_handler(msg, process_product_step)
+
+def process_product_step(message):
+    chat_id = message.chat.id
+    user_data[chat_id].product = message.text
+    order_id = int(datetime.datetime.now().timestamp()) % 10000
+    date_str = datetime.datetime.now().strftime("%d-%m-%Y")
+    
+    # Log to Google Sheets
+    log_to_google_sheet(order_id, date_str, user_data[chat_id])
+    
+    # Confirmation Text
+    location_info = f"\n📍 [Google Maps Location]({user_data[chat_id].location_link})" if user_data[chat_id].location_link else f"\n📍 Address: {user_data[chat_id].address}"
+    
+    conf = (
+        f"✅ *Order Confirmed!*\n\n"
+        f"🆔 ID: {order_id}\n"
+        f"👤 Name: {user_data[chat_id].name}"
+        f"{location_info}\n"
+        f"📦 Items: {user_data[chat_id].product}\n\n"
+        f"धन्यवाद! हमें आपका आर्डर मिल गया है। 🙏"
+    )
+    bot.send_message(chat_id, conf, parse_mode="Markdown", reply_markup=get_main_keyboard())
+    del user_data[chat_id]
+
+# ==========================================
+# GENERAL HANDLERS
 # ==========================================
 
 @bot.message_handler(commands=['start', 'help'])
@@ -90,7 +175,7 @@ def send_welcome(message):
     welcome_text = (
         f"नमस्ते {message.from_user.first_name}! 🍴\n\n"
         "मैं आपका *Premium Restaurant Guide* हूँ।\n"
-        "यहाँ से आप शानदार खाना देख सकते हैं और आर्डर कर सकते हैं।"
+        "अब आप अपना *Live Location* शेयर करके और भी आसानी से आर्डर कर सकते हैं!"
     )
     bot.reply_to(message, welcome_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
 
@@ -105,80 +190,42 @@ def handle_category(call):
     matches = [row for row in data if row['Category'] == category]
     
     if matches:
-        bot.answer_callback_query(call.id, f"Showing {category} Restaurants")
+        bot.answer_callback_query(call.id, f"Showing {category}")
         for res in matches:
             detail = (
                 f"🍴 *{res['Restaurant_Name']}*\n"
-                f"⭐ Rating: {res['Rating']} | 🍜 Cuisine: {res['Cuisine']}\n"
+                f"⭐ Rating: {res['Rating']}\n"
                 f"💰 Avg Cost: ₹{res['Avg_Cost']}\n"
-                f"📍 City: {res['City']}\n"
                 f"📞 Contact: {res['Contact']}"
             )
-            # Send Photo with Details
             img_url = res.get('Image_URL', 'https://via.placeholder.com/300')
             bot.send_photo(call.message.chat.id, img_url, caption=detail, parse_mode="Markdown")
     else:
-        bot.answer_callback_query(call.id, "No restaurants found in this category.")
+        bot.answer_callback_query(call.id, "No data found.")
 
-@bot.message_handler(func=lambda message: message.text == '🛒 Order Food')
-def start_order(message):
-    chat_id = message.chat.id
-    user_data[chat_id] = Order()
-    msg = bot.send_message(chat_id, "🛒 *Order Booking Start!*\n\nअपना नाम लिखें:")
-    bot.register_next_step_handler(msg, process_name_step)
-
-def process_name_step(message):
-    chat_id = message.chat.id
-    user_data[chat_id].name = message.text
-    msg = bot.send_message(chat_id, "अब अपना *Delivery Address* लिखें:")
-    bot.register_next_step_handler(msg, process_address_step)
-
-def process_address_step(message):
-    chat_id = message.chat.id
-    user_data[chat_id].address = message.text
-    msg = bot.send_message(chat_id, "आपका *Mobile Number* क्या है?")
-    bot.register_next_step_handler(msg, process_phone_step)
-
-def process_phone_step(message):
-    chat_id = message.chat.id
-    user_data[chat_id].phone = message.text
-    msg = bot.send_message(chat_id, "आप क्या खाना चाहते हैं? (Food/Restaurant Name):")
-    bot.register_next_step_handler(msg, process_product_step)
-
-def process_product_step(message):
-    chat_id = message.chat.id
-    user_data[chat_id].product = message.text
-    order_id = int(datetime.datetime.now().timestamp()) % 10000
-    date_str = datetime.datetime.now().strftime("%d-%m-%Y")
-    log_to_google_sheet(order_id, date_str, user_data[chat_id])
-    
-    conf = (f"✅ *Order Confirmed!*\n\n🆔 ID: {order_id}\n👤 Name: {user_data[chat_id].name}\n Items: {user_data[chat_id].product}\n\nधन्यवाद! 🙏")
-    bot.send_message(chat_id, conf, parse_mode="Markdown")
-    del user_data[chat_id]
-
-@bot.message_handler(func=lambda message: message.text == ' Contact Owner')
+@bot.message_handler(func=lambda message: message.text == '📞 Contact Owner')
 def contact_owner(message):
     bot.reply_to(message, "📞 *Contact Amresh Kumar*\n📱 Phone: +91 9123456780", parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: message.text == '❓ Help / AI Chat')
 def help_ai(message):
-    bot.reply_to(message, "🤖 *AI Assistant:* आप मुझसे खाने की सलाह मांग सकते हैं।", parse_mode="Markdown")
+    bot.reply_to(message, "🤖 *AI Assistant:* मुझसे कुछ भी पूछें!", parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: True)
 def handle_all(message):
     text = message.text.strip()
     if text in ['🍴 View Menu', '🛒 Order Food', '📞 Contact Owner', '❓ Help / AI Chat']: return
     
-    # Simple search fallback
+    # Search fallback
     data = load_data()
     for row in data:
         if text.lower() in row['Restaurant_Name'].lower():
-            bot.send_photo(message.chat.id, row['Image_URL'], caption=f"🍴 *{row['Restaurant_Name']}*\n⭐ {row['Rating']}", parse_mode="Markdown")
+            bot.send_photo(message.chat.id, row['Image_URL'], caption=f"🍴 *{row['Restaurant_Name']}*", parse_mode="Markdown")
             return
 
     bot.send_chat_action(message.chat.id, 'typing')
     bot.reply_to(message, get_ai_response(text))
 
 if __name__ == "__main__":
-    print("Premium Restaurant Bot Starting...")
+    print("Restaurant Bot with GPS Location Starting...")
     bot.infinity_polling()
