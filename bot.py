@@ -223,11 +223,14 @@ def process_product_step(message):
         "🙏 *Thank you for ordering!*\n"
         "We will contact you shortly."
     )
-    bot.send_message(chat_id, invoice_msg, parse_mode="Markdown", reply_markup=get_main_keyboard(), disable_web_page_preview=True)
-    
-    # Send Rating Prompt
-    bot.send_message(chat_id, "⭐ *Quick Feedback:*\nHow was your experience? Please rate us:", 
-                     parse_mode="Markdown", reply_markup=get_rating_keyboard(order_id))
+    # Merge Invoice and Rating buttons in one go
+    bot.send_message(
+        chat_id, 
+        invoice_msg, 
+        parse_mode="Markdown", 
+        reply_markup=get_rating_keyboard(order_id), 
+        disable_web_page_preview=True
+    )
     del user_data[chat_id]
 
 # ------------------------------------------------------------------------------
@@ -268,6 +271,8 @@ def handle_rating(call):
     bot.answer_callback_query(call.id, f"Thank you for the {score} ⭐ rating!")
     bot.edit_message_text(f"✅ *Rating Submitted:* {score} ⭐\nThank you for choosing us!", 
                          call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+    # Show main menu again
+    bot.send_message(call.message.chat.id, "What would you like to do next?", reply_markup=get_main_keyboard())
 
 @bot.message_handler(func=lambda message: message.text == '📱 Social Media Hub')
 def social_hub(message):
