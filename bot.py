@@ -156,22 +156,36 @@ def process_product_step(message):
     user_data[chat_id].product = message.text
     order_id = int(datetime.datetime.now().timestamp()) % 10000
     date_str = datetime.datetime.now().strftime("%d-%m-%Y")
+    time_str = datetime.datetime.now().strftime("%I:%M %p")
     
     # Log to Google Sheets
     log_to_google_sheet(order_id, date_str, user_data[chat_id])
     
-    # Confirmation Text
-    location_info = f"\n📍 [Google Maps Location]({user_data[chat_id].location_link})" if user_data[chat_id].location_link else f"\n📍 Address: {user_data[chat_id].address}"
+    # Location Info
+    loc_val = f"[Click for Maps]({user_data[chat_id].location_link})" if user_data[chat_id].location_link else user_data[chat_id].address
     
-    conf = (
-        f"✅ *Order Confirmed!*\n\n"
-        f"🆔 ID: {order_id}\n"
-        f"👤 Name: {user_data[chat_id].name}"
-        f"{location_info}\n"
-        f"📦 Items: {user_data[chat_id].product}\n\n"
-        f"धन्यवाद! हमें आपका आर्डर मिल गया है। 🙏"
+    # 🧾 Beautiful Invoice Style Message
+    invoice_msg = (
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "📜 *OFFICIAL INVOICE* 🧾\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📅 *Date:* {date_str} | 🕒 {time_str}\n"
+        f"🆔 *Order ID:* #{order_id}\n"
+        "─────────────────────\n"
+        "👤 *CUSTOMER DETAILS*\n"
+        f"Name: {user_data[chat_id].name}\n"
+        f"Phone: {user_data[chat_id].phone}\n"
+        f"Address: {loc_val}\n"
+        "─────────────────────\n"
+        "📦 *ORDER SUMMARY*\n"
+        f"Item(s): *{user_data[chat_id].product}*\n"
+        "Status: ✅ Confirmed (COD)\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🙏 *Thank you for ordering!*\n"
+        "हम जल्द ही आपसे संपर्क करेंगे।"
     )
-    bot.send_message(chat_id, conf, parse_mode="Markdown", reply_markup=get_main_keyboard())
+    
+    bot.send_message(chat_id, invoice_msg, parse_mode="Markdown", reply_markup=get_main_keyboard(), disable_web_page_preview=True)
     del user_data[chat_id]
 
 # ==========================================
