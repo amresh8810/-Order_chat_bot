@@ -74,7 +74,15 @@ def get_ai_response(user_text):
 
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add('🍴 View Menu', '🛒 Order Food', '❓ Help / AI Chat', '📞 Contact Owner')
+    markup.add('🍴 View Menu', '🛒 Order Food', '📱 Social Media Hub', '❓ Help / AI Chat', '📞 Contact Owner')
+    return markup
+
+def get_social_keyboard():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn_wa = types.InlineKeyboardButton("💬 Chat on WhatsApp", url="https://wa.me/919123456780")
+    btn_ig = types.InlineKeyboardButton("📸 Follow on Instagram", url="https://instagram.com/amresh8810")
+    btn_map = types.InlineKeyboardButton("📍 Our Restaurant Location", url="https://maps.google.com/?q=Spice+Garden+Delhi")
+    markup.add(btn_wa, btn_ig, btn_map)
     return markup
 
 def get_location_keyboard():
@@ -211,10 +219,18 @@ def contact_owner(message):
 def help_ai(message):
     bot.reply_to(message, "🤖 *AI Assistant:* मुझसे कुछ भी पूछें!", parse_mode="Markdown")
 
+@bot.message_handler(func=lambda message: message.text == '📱 Social Media Hub')
+def social_hub(message):
+    social_text = (
+        "🌟 *Connect with Us!*\n\n"
+        "नीचे दिए गए बटनों पर क्लिक करके हमसे जुड़ें:"
+    )
+    bot.reply_to(message, social_text, parse_mode="Markdown", reply_markup=get_social_keyboard())
+
 @bot.message_handler(func=lambda message: True)
 def handle_all(message):
     text = message.text.strip()
-    if text in ['🍴 View Menu', '🛒 Order Food', '📞 Contact Owner', '❓ Help / AI Chat']: return
+    if text in ['🍴 View Menu', '🛒 Order Food', '� Social Media Hub', '❓ Help / AI Chat', '📞 Contact Owner']: return
     
     # Search fallback
     data = load_data()
