@@ -148,16 +148,51 @@ def process_product_step(message):
 # GENERAL HANDLERS
 # ==========================================
 
+def get_main_keyboard():
+    markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    btn_menu = types.KeyboardButton('🍴 View Menu')
+    btn_order = types.KeyboardButton('🛒 Order Food')
+    btn_help = types.KeyboardButton('❓ Help / AI Chat')
+    btn_contact = types.KeyboardButton('📞 Contact Owner')
+    markup.add(btn_menu, btn_order, btn_help, btn_contact)
+    return markup
+
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
         f"नमस्ते {message.from_user.first_name}! 🍴\n\n"
-        "मैं आपका *Restaurant Guide & Order Bot* हूँ।\n"
-        "🔹 *Menu/Data:* 'data' लिखें\n"
-        "🔹 *Order Food:* 'order' लिखें\n"
-        "� *AI Chat:* कुछ भी पूछें!"
+        "मैं आपका *Premium Restaurant Guide & Order Bot* हूँ।\n\n"
+        "नीचे दिए गए बटनों का उपयोग करें�"
     )
-    bot.reply_to(message, welcome_text, parse_mode="Markdown")
+    bot.reply_to(message, welcome_text, parse_mode="Markdown", reply_markup=get_main_keyboard())
+
+@bot.message_handler(func=lambda message: message.text == '🍴 View Menu')
+def show_restaurants_btn(message):
+    show_restaurants(message)
+
+@bot.message_handler(func=lambda message: message.text == '🛒 Order Food')
+def order_food_btn(message):
+    start_order(message)
+
+@bot.message_handler(func=lambda message: message.text == '📞 Contact Owner')
+def contact_owner(message):
+    contact_text = (
+        "📞 *Contact Details:*\n\n"
+        "� Owner: Amresh Kumar\n"
+        "📱 Phone: +91 9123456780\n"
+        "📧 Email: info@restaurantbot.com\n\n"
+        "किसी भी सहायता के लिए हमें कॉल करें!"
+    )
+    bot.reply_to(message, contact_text, parse_mode="Markdown")
+
+@bot.message_handler(func=lambda message: message.text == '❓ Help / AI Chat')
+def help_ai_chat(message):
+    help_text = (
+        "🤖 *AI Assistant Help*\n\n"
+        "आप मुझसे खाने की सलाह, रेसिपी, या किसी भी रेस्टोरेंट के बारे में पूछ सकते हैं।\n\n"
+        "बस अपना सवाल टाइप करें और मैं जवाब दूँगा!"
+    )
+    bot.reply_to(message, help_text, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda message: 'data' in message.text.lower())
 def show_restaurants(message):
@@ -173,6 +208,11 @@ def show_restaurants(message):
 @bot.message_handler(func=lambda message: True)
 def handle_all(message):
     text = message.text.strip()
+    
+    # Ignore button text that are already handled
+    if text in ['🍴 View Menu', '🛒 Order Food', '📞 Contact Owner', '❓ Help / AI Chat']:
+        return
+
     data = load_data()
     
     # Search logic
