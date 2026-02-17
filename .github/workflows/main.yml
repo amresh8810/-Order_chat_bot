@@ -21,7 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install pyTelegramBotAPI requests
+          pip install -r requirements.txt
 
       - name: Run Bot
         env:
