@@ -1,0 +1,8 @@
+Restaurant_ID,Restaurant_Name,City,Cuisine,Category,Rating,Avg_Cost,Contact,Image_URL
+101,Spice Garden,Delhi,Indian,Indian,4.2,800,9876543210,https://images.unsplash.com/photo-1585937421612-70a008356fbe?q=80&w=1000
+102,Pizza Hub,Mumbai,Italian,Italian,4.0,600,9123456780,https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1000
+103,Dragon Wok,Bangalore,Chinese,Chinese,4.5,900,9988776655,https://images.unsplash.com/photo-1525755662778-989d0524087e?q=80&w=1000
+104,Tandoori Nights,Chennai,North Indian,Indian,4.1,750,9090909090,https://images.unsplash.com/photo-1631452180519-c014fe946bc7?q=80&w=1000
+105,Burger Point,Pune,Fast Food,Fast Food,3.9,500,8765432109,https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000
+106,Curry Palace,Kolkata,Indian,Indian,4.3,850,8899776655,https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000
+107,Sushi World,Hyderabad,Japanese,Japanese,4.6,1200,9012345678,https://images.unsplash.com/photo-1579871494447-9811cf80d66c?q=80&w=1000
