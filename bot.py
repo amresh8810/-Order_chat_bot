@@ -227,7 +227,7 @@ def get_social_keyboard():
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn_wa = types.InlineKeyboardButton("💬 WhatsApp", url="https://wa.me/918797114376")
     btn_ig = types.InlineKeyboardButton("📸 Instagram", url="https://www.instagram.com/amresh_kumar.__?igsh=MW95aWs1cDZ1aXpjdg==")
-    btn_li = types.InlineKeyboardButton("� LinkedIn", url="https://www.linkedin.com/in/amresh-kumar-8451162a6/")
+    btn_li = types.InlineKeyboardButton("🔗 LinkedIn", url="https://www.linkedin.com/in/amresh-kumar-8451162a6/")
     btn_map = types.InlineKeyboardButton("📍 Our Location", url="https://www.google.com/maps/search/?api=1&query=Vinayaka+Missions+Kirupananda+Variyar+Medical+College")
     markup.add(btn_wa, btn_ig, btn_li, btn_map)
     return markup
@@ -484,7 +484,7 @@ def handle_rating(call):
     bot.send_message(call.message.chat.id, "What would you like to do next?", reply_markup=get_main_keyboard())
 
 @bot.message_handler(commands=['social'])
-@bot.message_handler(func=lambda message: message.text == '📱 Social Media Hub' or 'social media' in message.text.lower())
+@bot.message_handler(func=lambda message: message.text and ('social media' in message.text.lower() or 'hub' in message.text.lower()))
 def social_hub(message):
     social_text = (
         "🌟 *Connect with Us!*\n\n"
