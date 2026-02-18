@@ -656,7 +656,9 @@ def handle_all(message):
     if text:
         print(f"DEBUG: Message received from {message.from_user.first_name}: {text}")
 
-    if text in ['🍴 View Menu', '🛒 Order Food', '📱 Social Media Hub', '🎲 Surprise Me', '❓ Help / AI Chat', '📞 Contact Owner']: 
+    # Core Buttons Check (Lower-case check for better matching)
+    core_buttons = ['view menu', 'order food', 'social media', 'surprise me', 'help / ai chat', 'contact owner', 'hub']
+    if any(btn in text.lower() for btn in core_buttons):
         return
         
     data = load_data()
