@@ -605,8 +605,9 @@ def handle_rating(call):
     bot.send_message(call.message.chat.id, "What would you like to do next?", reply_markup=get_main_keyboard())
 
 @bot.message_handler(commands=['social'])
-@bot.message_handler(func=lambda message: message.text and ('social media' in message.text.lower() or 'hub' in message.text.lower() or '📱' in message.text))
+@bot.message_handler(func=lambda message: message.text and any(keyword in message.text.lower() for keyword in ['social', 'media hub', 'hub', '📱']))
 def social_hub(message):
+    print(f"DEBUG: Social Hub triggered by {message.chat.id}")
     social_text = (
         "🌟 *Connect with Us!*\n\n"
         "📸 *Instagram:* @amresh_kumar.__\n"
@@ -779,9 +780,10 @@ def handle_all(message):
     if text:
         print(f"DEBUG: Message received from {message.from_user.first_name}: {text}")
 
-    # Core Buttons Check (Lower-case check for better matching)
+    # Core Buttons Check
     core_buttons = ['view menu', 'order food', 'social media', 'surprise me', 'help / ai chat', 'contact owner', 'hub', 'my cart']
     if any(btn in text.lower() for btn in core_buttons):
+        print(f"DEBUG: Core button '{text}' caught and skipped in handle_all")
         return
         
     data = load_data()
