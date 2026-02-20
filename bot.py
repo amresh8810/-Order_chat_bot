@@ -213,8 +213,8 @@ def get_voice_response(audio_data):
 def get_main_keyboard(user_id=None):
     """Returns the primary navigation menu."""
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add('🍴 View Menu', '🛒 My Cart')
-    markup.add('� Order Food', '�📱 Social Media Hub')
+    markup.add('🍴 View Menu', '🛒 Order Food')
+    markup.add('🛒 My Cart', '📱 Social Media Hub')
     markup.add('🎲 Surprise Me', '❓ Help / AI Chat')
     markup.add('➕ More Options')
     return markup
@@ -412,32 +412,29 @@ def process_phone_step(message):
     user_data[chat_id].phone = message.text
     
     if user_data[chat_id].is_manual:
-        msg = bot.send_message(chat_id, "What would you like to order? (Type food names and total price):\n(Example: Pizza and Coke - 500)")
-        bot.register_next_step_handler(msg, process_manual_product_step)
+        msg = bot.send_message(chat_id, "What would you like to order? (Food Name):")
+        bot.register_next_step_handler(msg, process_product_step)
     else:
         # Items are already in cart
         msg = bot.send_message(chat_id, f"📦 Order Summary: *{user_data[chat_id].product}*\n💰 Total: *₹{user_data[chat_id].total_amount}*\n\n💳 *Select Payment Method:*", 
                                parse_mode="Markdown", reply_markup=get_payment_keyboard())
         bot.register_next_step_handler(msg, process_payment_logic)
 
-def process_manual_product_step(message):
+def process_product_step(message):
     chat_id = message.chat.id
-    text = message.text
-    # Try to extract price if user followed example, else default to 0
-    price = 0
-    product = text
-    if ' - ' in text:
-        try:
-            parts = text.split(' - ')
-            product = parts[0]
-            price = int(parts[1])
-        except:
-            pass
-            
-    user_data[chat_id].product = product
-    user_data[chat_id].total_amount = price
+    user_data[chat_id].product = message.text
+    msg = bot.send_message(chat_id, "Please enter the *Total Price* (e.g. 500):", parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_price_step)
+
+def process_price_step(message):
+    chat_id = message.chat.id
+    try:
+        price = int(message.text)
+    except:
+        price = 0
     
-    msg = bot.send_message(chat_id, f"📦 Manual Order: *{product}*\n💰 Price: *₹{price}*\n\n💳 *Select Payment Method:*", 
+    user_data[chat_id].total_amount = price
+    msg = bot.send_message(chat_id, f"📦 Manual Order: *{user_data[chat_id].product}*\n💰 Total: *₹{price}*\n\n💳 *Select Payment Method:*", 
                            parse_mode="Markdown", reply_markup=get_payment_keyboard())
     bot.register_next_step_handler(msg, process_payment_logic)
 
