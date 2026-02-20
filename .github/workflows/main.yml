@@ -1,5 +1,9 @@
 name: Telegram Bot 24/7
 
+concurrency:
+  group: bot-running
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main ]
