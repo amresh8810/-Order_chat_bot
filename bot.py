@@ -85,7 +85,8 @@ def log_to_google_sheet(order_id, date, order_obj):
             "name": order_obj.name,
             "address": final_address,
             "phone": order_obj.phone,
-            "product": order_obj.product
+            "product": order_obj.product,
+            "price": order_obj.total_amount
         }
         requests.get(SHEET_URL, params=params, timeout=5)
     except Exception as e:
@@ -103,16 +104,16 @@ def log_rating_to_google_sheet(order_id, rating):
     except:
         pass
 
-def log_order_to_local(order_id, user_id, name, product):
+def log_order_to_local(order_id, user_id, name, product, price):
     """Logs the order locally to a CSV file for status tracking."""
     file_exists = os.path.exists(ORDERS_FILE) and os.path.getsize(ORDERS_FILE) > 0
     try:
         with open(ORDERS_FILE, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             if not file_exists:
-                writer.writerow(['Order_ID', 'User_ID', 'Name', 'Product', 'Status'])
-            # Order_ID, User_ID, Name, Product, Status
-            writer.writerow([order_id, user_id, name, product, 'Pending'])
+                writer.writerow(['Order_ID', 'User_ID', 'Name', 'Product', 'Price', 'Status'])
+            # Order_ID, User_ID, Name, Product, Price, Status
+            writer.writerow([order_id, user_id, name, product, price, 'Pending'])
     except Exception as e:
         print(f"Local Log Error: {e}")
 
@@ -445,7 +446,7 @@ def finalize_order(message):
     status_msg = "Pending (Paid)" if user_data[chat_id].payment_method == 'Online' else "Pending (COD)"
 
     log_to_google_sheet(order_id, date_str, user_data[chat_id])
-    log_order_to_local(order_id, chat_id, user_data[chat_id].name, user_data[chat_id].product)
+    log_order_to_local(order_id, chat_id, user_data[chat_id].name, user_data[chat_id].product, user_data[chat_id].total_amount)
     
     # Update local status if online
     if user_data[chat_id].payment_method == 'Online':
@@ -571,7 +572,7 @@ def handle_rating(call):
     bot.send_message(call.message.chat.id, "What would you like to do next?", reply_markup=get_main_keyboard())
 
 @bot.message_handler(commands=['social'])
-@bot.message_handler(func=lambda message: message.text and ('social media' in message.text.lower() or 'hub' in message.text.lower()))
+@bot.message_handler(func=lambda message: message.text and ('social media' in message.text.lower() or 'hub' in message.text.lower() or '📱' in message.text))
 def social_hub(message):
     social_text = (
         "🌟 *Connect with Us!*\n\n"
@@ -659,7 +660,9 @@ def admin_show_orders(message):
         else:
             response = "📦 *Pending Orders:*\n\n"
             for order in active_orders[-5:]: # Show last 5
-                response += f"🆔 *#{order[0]}* - {order[2]}\n🔹 Item: {order[3]}\n🔸 Status: {order[4]}\n\n"
+                # Assuming index 4 is Price (after shift) or 5 if Status is shifted
+                # The row format is: [Order_ID, User_ID, Name, Product, Price, Status]
+                response += f"🆔 *#{order[0]}* - {order[2]}\n🔹 Item: {order[3]}\n💰 Price: ₹{order[4]}\n🔸 Status: {order[5]}\n\n"
             response += "Use `/updatestatus <ID> <Status>` to update."
             bot.reply_to(message, response, parse_mode="Markdown")
             
