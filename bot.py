@@ -49,6 +49,7 @@ class Order:
         self.product = None
         self.payment_method = None
         self.total_amount = 0
+        self.is_manual = False
 
 # ------------------------------------------------------------------------------
 # 🔹 DATA & CLOUD INTEGRATION
@@ -213,8 +214,9 @@ def get_main_keyboard(user_id=None):
     """Returns the primary navigation menu."""
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add('🍴 View Menu', '🛒 My Cart')
-    markup.add('📱 Social Media Hub', '🎲 Surprise Me')
-    markup.add('❓ Help / AI Chat', '➕ More Options')
+    markup.add('� Order Food', '�📱 Social Media Hub')
+    markup.add('🎲 Surprise Me', '❓ Help / AI Chat')
+    markup.add('➕ More Options')
     return markup
 
 def get_more_keyboard(is_admin=False):
@@ -349,6 +351,13 @@ def handle_checkout_callback(call):
 
 
 @bot.message_handler(func=lambda message: message.text == '🛒 Order Food' or message.text == '/order')
+def start_manual_order(message):
+    chat_id = message.chat.id
+    user_data[chat_id] = Order()
+    user_data[chat_id].is_manual = True
+    msg = bot.send_message(chat_id, "🛒 *Manual Order Started*\n\nPlease enter your full name:", parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_name_step)
+
 def start_order(message):
     chat_id = message.chat.id
     
@@ -357,12 +366,13 @@ def start_order(message):
         return
 
     user_data[chat_id] = Order()
+    user_data[chat_id].is_manual = False
     # Prepare cart summary
     cart = user_carts[chat_id]
     user_data[chat_id].product = ", ".join([item['name'] for item in cart])
     user_data[chat_id].total_amount = sum([int(item['price']) for item in cart])
 
-    msg = bot.send_message(chat_id, "🛒 *Checkout Started*\n\nPlease enter your full name:", parse_mode="Markdown")
+    msg = bot.send_message(chat_id, "🛒 *Cart Checkout Started*\n\nPlease enter your full name:", parse_mode="Markdown")
     bot.register_next_step_handler(msg, process_name_step)
 
 def process_name_step(message):
@@ -400,8 +410,34 @@ def process_manual_address_step(message):
 def process_phone_step(message):
     chat_id = message.chat.id
     user_data[chat_id].phone = message.text
-    # Skip process_product_step because items are already in cart
-    msg = bot.send_message(chat_id, f"📦 Order Summary: *{user_data[chat_id].product}*\n💰 Total: *₹{user_data[chat_id].total_amount}*\n\n💳 *Select Payment Method:*", 
+    
+    if user_data[chat_id].is_manual:
+        msg = bot.send_message(chat_id, "What would you like to order? (Type food names and total price):\n(Example: Pizza and Coke - 500)")
+        bot.register_next_step_handler(msg, process_manual_product_step)
+    else:
+        # Items are already in cart
+        msg = bot.send_message(chat_id, f"📦 Order Summary: *{user_data[chat_id].product}*\n💰 Total: *₹{user_data[chat_id].total_amount}*\n\n💳 *Select Payment Method:*", 
+                               parse_mode="Markdown", reply_markup=get_payment_keyboard())
+        bot.register_next_step_handler(msg, process_payment_logic)
+
+def process_manual_product_step(message):
+    chat_id = message.chat.id
+    text = message.text
+    # Try to extract price if user followed example, else default to 0
+    price = 0
+    product = text
+    if ' - ' in text:
+        try:
+            parts = text.split(' - ')
+            product = parts[0]
+            price = int(parts[1])
+        except:
+            pass
+            
+    user_data[chat_id].product = product
+    user_data[chat_id].total_amount = price
+    
+    msg = bot.send_message(chat_id, f"📦 Manual Order: *{product}*\n💰 Price: *₹{price}*\n\n💳 *Select Payment Method:*", 
                            parse_mode="Markdown", reply_markup=get_payment_keyboard())
     bot.register_next_step_handler(msg, process_payment_logic)
 
