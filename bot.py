@@ -35,7 +35,9 @@ DATA_FILE = 'data.csv'
 ORDERS_FILE = 'orders.csv'
 
 # Temporary storage for order processing
+# Temporary storage for order processing
 user_data = {}
+user_carts = {} # Storage for shopping cart: {chat_id: [items]}
 
 class Order:
     """Class to structure order data during the collection process."""
@@ -46,6 +48,7 @@ class Order:
         self.phone = None
         self.product = None
         self.payment_method = None
+        self.total_amount = 0
 
 # ------------------------------------------------------------------------------
 # 🔹 DATA & CLOUD INTEGRATION
@@ -208,7 +211,7 @@ def get_voice_response(audio_data):
 def get_main_keyboard(user_id=None):
     """Returns the primary navigation menu."""
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add('🍴 View Menu', '🛒 Order Food')
+    markup.add('🍴 View Menu', '🛒 My Cart')
     markup.add('📱 Social Media Hub', '🎲 Surprise Me')
     markup.add('❓ Help / AI Chat', '➕ More Options')
     return markup
@@ -267,15 +270,98 @@ def get_category_keyboard():
     markup.add(*btns)
     return markup
 
+def get_item_keyboard(item_id):
+    """Keyboard for each menu item to add to cart."""
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("➕ Add to Cart", callback_data=f"add_{item_id}"))
+    return markup
+
+def get_cart_keyboard():
+    """Keyboard for cart management."""
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("🛍️ Checkout Now", callback_data="checkout"),
+        types.InlineKeyboardButton("🗑️ Clear Cart", callback_data="clear_cart")
+    )
+    return markup
+
 # ------------------------------------------------------------------------------
 # 🔹 ORDER FLOW LOGIC
 # ------------------------------------------------------------------------------
 
+@bot.message_handler(func=lambda message: message.text == '🛒 My Cart')
+def show_cart(message):
+    chat_id = message.chat.id
+    cart = user_carts.get(chat_id, [])
+    
+    if not cart:
+        bot.send_message(chat_id, "🛒 *Your cart is empty!*\n\nBrowse the menu and add some delicious items first. 😋", 
+                         parse_mode="Markdown", reply_markup=get_main_keyboard())
+        return
+
+    summary = "🛒 *YOUR SHOPPING CART*\n"
+    summary += "━━━━━━━━━━━━━━━━━━━━━\n"
+    total = 0
+    for i, item in enumerate(cart, 1):
+        summary += f"{i}. *{item['name']}* - ₹{item['price']}\n"
+        total += int(item['price'])
+    
+    summary += "━━━━━━━━━━━━━━━━━━━━━\n"
+    summary += f"💰 *Total Amount: ₹{total}*\n\n"
+    summary += "Ready to eat? Click below to place your order!"
+    
+    bot.send_message(chat_id, summary, parse_mode="Markdown", reply_markup=get_cart_keyboard())
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('add_'))
+def handle_add_to_cart(call):
+    item_id = call.data.split('_')[1]
+    data = load_data()
+    item = next((row for row in data if row.get('Restaurant_ID') == item_id), None)
+    
+    if item:
+        chat_id = call.message.chat.id
+        if chat_id not in user_carts:
+            user_carts[chat_id] = []
+        
+        user_carts[chat_id].append({
+            'name': item.get('Restaurant_Name'),
+            'price': item.get('Avg_Cost')
+        })
+        
+        bot.answer_callback_query(call.id, f"✅ Added {item.get('Restaurant_Name')} to cart!")
+    else:
+        bot.answer_callback_query(call.id, "⚠️ Item not found.")
+
+@bot.callback_query_handler(func=lambda call: call.data == 'clear_cart')
+def handle_clear_cart(call):
+    chat_id = call.message.chat.id
+    if chat_id in user_carts:
+        user_carts[chat_id] = []
+    bot.answer_callback_query(call.id, "🗑️ Cart cleared.")
+    bot.edit_message_text("🛒 Your cart has been cleared.", chat_id, call.message.message_id)
+    bot.send_message(chat_id, "What would you like to do next?", reply_markup=get_main_keyboard())
+
+@bot.callback_query_handler(func=lambda call: call.data == 'checkout')
+def handle_checkout_callback(call):
+    bot.answer_callback_query(call.id)
+    start_order(call.message)
+
+
 @bot.message_handler(func=lambda message: message.text == '🛒 Order Food' or message.text == '/order')
 def start_order(message):
     chat_id = message.chat.id
+    
+    if not user_carts.get(chat_id):
+        bot.send_message(chat_id, "⚠️ Your cart is empty! Add items from the menu first.")
+        return
+
     user_data[chat_id] = Order()
-    msg = bot.send_message(chat_id, "🛒 *Food Order Booking Started*\n\nPlease enter your full name:", parse_mode="Markdown")
+    # Prepare cart summary
+    cart = user_carts[chat_id]
+    user_data[chat_id].product = ", ".join([item['name'] for item in cart])
+    user_data[chat_id].total_amount = sum([int(item['price']) for item in cart])
+
+    msg = bot.send_message(chat_id, "🛒 *Checkout Started*\n\nPlease enter your full name:", parse_mode="Markdown")
     bot.register_next_step_handler(msg, process_name_step)
 
 def process_name_step(message):
@@ -313,13 +399,9 @@ def process_manual_address_step(message):
 def process_phone_step(message):
     chat_id = message.chat.id
     user_data[chat_id].phone = message.text
-    msg = bot.send_message(chat_id, "What would you like to order? (Food Name):")
-    bot.register_next_step_handler(msg, process_product_step)
-
-def process_product_step(message):
-    chat_id = message.chat.id
-    user_data[chat_id].product = message.text
-    msg = bot.send_message(chat_id, "💳 *Select Payment Method:*", parse_mode="Markdown", reply_markup=get_payment_keyboard())
+    # Skip process_product_step because items are already in cart
+    msg = bot.send_message(chat_id, f"📦 Order Summary: *{user_data[chat_id].product}*\n💰 Total: *₹{user_data[chat_id].total_amount}*\n\n💳 *Select Payment Method:*", 
+                           parse_mode="Markdown", reply_markup=get_payment_keyboard())
     bot.register_next_step_handler(msg, process_payment_logic)
 
 def process_payment_logic(message):
@@ -385,6 +467,7 @@ def finalize_order(message):
         "─────────────────────\n"
         "📦 *ORDER SUMMARY*\n"
         f"Item(s): *{user_data[chat_id].product}*\n"
+        f"Total: *₹{user_data[chat_id].total_amount}*\n"
         f"Payment: {pay_status}\n"
         "━━━━━━━━━━━━━━━━━━━━━\n"
         "🙏 *Thank you for ordering!*\n"
@@ -404,6 +487,8 @@ def finalize_order(message):
 
     if chat_id in user_data:
         del user_data[chat_id]
+    if chat_id in user_carts:
+        del user_carts[chat_id]
 
 # ------------------------------------------------------------------------------
 # 🔹 PRIMARY MESSAGE HANDLERS
@@ -462,11 +547,13 @@ def handle_category(call):
                 try:
                     detail = f"🍴 *{res.get('Restaurant_Name', 'Unknown')}*\n⭐ Rating: {res.get('Rating', 'N/A')}\n💰 Cost: ₹{res.get('Avg_Cost', 'N/A')}\n📞 {res.get('Contact', 'N/A')}"
                     img_url = res.get('Image_URL', 'https://via.placeholder.com/300')
-                    bot.send_photo(call.message.chat.id, img_url, caption=detail, parse_mode="Markdown")
+                    bot.send_photo(call.message.chat.id, img_url, caption=detail, parse_mode="Markdown", 
+                                  reply_markup=get_item_keyboard(res.get('Restaurant_ID')))
                 except Exception as e:
                     print(f"Error sending menu item: {e}")
                     # Fallback to text message if photo fails
-                    bot.send_message(call.message.chat.id, detail.replace('*', ''), parse_mode=None) 
+                    bot.send_message(call.message.chat.id, detail.replace('*', ''), parse_mode=None, 
+                                     reply_markup=get_item_keyboard(res.get('Restaurant_ID'))) 
         else:
             bot.answer_callback_query(call.id, "No data available.")
     except Exception as e:
@@ -657,7 +744,7 @@ def handle_all(message):
         print(f"DEBUG: Message received from {message.from_user.first_name}: {text}")
 
     # Core Buttons Check (Lower-case check for better matching)
-    core_buttons = ['view menu', 'order food', 'social media', 'surprise me', 'help / ai chat', 'contact owner', 'hub']
+    core_buttons = ['view menu', 'order food', 'social media', 'surprise me', 'help / ai chat', 'contact owner', 'hub', 'my cart']
     if any(btn in text.lower() for btn in core_buttons):
         return
         
