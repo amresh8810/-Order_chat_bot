@@ -1242,6 +1242,29 @@ if __name__ == "__main__":
     print("[SUCCESS] BOT STARTED SUCCESSFULLY! (Press Ctrl+C to stop)")
     print("Checking Logs... All systems normal.")
     print("-----------------------------------------------------------------")
+    
+    # ── DUMMY WEB SERVER FOR RENDER.COM ──
+    # Render requires a web server to bind to a port within 60 seconds
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import os
+
+    class DummyHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"Bot is running successfully!")
+
+    def run_dummy_server():
+        port = int(os.environ.get("PORT", 8080))
+        server = HTTPServer(('0.0.0.0', port), DummyHandler)
+        print(f"[OK] Dummy web server running on port {port}")
+        server.serve_forever()
+
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+    # ─────────────────────────────────────
+
     # Set Bot Commands for the "Menu" button in Telegram UI
     try:
         bot.set_my_commands([
@@ -1262,3 +1285,4 @@ if __name__ == "__main__":
         bot.infinity_polling()
     except Exception as e:
         print(f"ERROR: BOT CRASHED: {e}")
+
